@@ -1,3 +1,5 @@
+# To run this script directly from GitHub raw:
+# curl -sSL https://raw.githubusercontent.com/arielrahamim9/scripts/refs/heads/main/k9s.sh | sh
 #!/bin/bash
 
 # Configuration
