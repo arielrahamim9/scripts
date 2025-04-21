@@ -1,3 +1,6 @@
+# To run this script directly from GitHub raw:
+# curl -s https://raw.githubusercontent.com/your-username/your-repo/main/stop-instance.sh | sh
+
 #!/bin/bash
 
 # Get system uptime and convert to minutes
