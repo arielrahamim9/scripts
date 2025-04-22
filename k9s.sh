@@ -50,6 +50,5 @@ fi
 echo "Configuring kubectl context..."
 aws eks update-kubeconfig --name $CLUSTER_NAME --region $REGION
 
-bash
-clear
+
 echo "Setup completed successfully!"
