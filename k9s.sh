@@ -2,6 +2,26 @@
 # To run this script directly from GitHub raw:
 # curl -sSL https://raw.githubusercontent.com/arielrahamim9/scripts/refs/heads/main/k9s.sh | sh
 
+# Detect distribution and set package manager
+if [ -f /etc/os-release ]; then
+    . /etc/os-release
+    case $ID in
+        debian|ubuntu)
+            PKG_MANAGER="apt-get"
+            INSTALL_CMD="sudo $PKG_MANAGER install -y"
+            ;;
+        rhel|centos|rocky|almalinux|amzn)
+            if [ -f /etc/redhat-release ]; then
+                PKG_MANAGER="yum"
+                INSTALL_CMD="sudo $PKG_MANAGER install -y"
+            fi
+            ;;
+        *) echo "Unsupported distribution: $ID"; exit 1 ;;
+    esac
+else
+    echo "Could not detect distribution"; exit 1
+fi
+
 # Configuration
 CLUSTER_NAME="hyperspace-tfc-simulation"
 REGION="eu-west-2"
@@ -20,12 +40,15 @@ install_utility() {
     fi
 }
 
+# Change Directory to tmp
+cd /tmp || cd "$HOME" || echo "Failed to change directory" && exit 1
+
 # Install required dependencies
 echo "Checking and installing required dependencies..."
-install_utility "curl/wget/git" "sudo apt-get install -y curl wget git" "command -v curl && command -v wget && command -v git"
+install_utility "curl/wget/git" "$INSTALL_CMD curl wget git" "command -v curl && command -v wget && command -v git"
 
 # Install GitubCLI
-install_utility "ghcli" "curl -sS https://webi.sh/gh | sh && source ~/.config/envman/PATH.env"
+install_utility "gh" "curl -sS https://webi.sh/gh | sh && source ~/.config/envman/PATH.env"
 
 # Install k9s
 install_utility "k9s" "curl -sS https://webi.sh/k9s | sh && source ~/.config/envman/PATH.env"
@@ -50,5 +73,5 @@ fi
 echo "Configuring kubectl context..."
 aws eks update-kubeconfig --name $CLUSTER_NAME --region $REGION
 
-
+bash
 echo "Setup completed successfully!"
