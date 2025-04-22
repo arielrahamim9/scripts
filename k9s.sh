@@ -22,7 +22,10 @@ install_utility() {
 
 # Install required dependencies
 echo "Checking and installing required dependencies..."
-install_utility "curl/wget" "sudo apt-get install -y curl wget" "command -v curl && command -v wget"
+install_utility "curl/wget/git" "sudo apt-get install -y curl wget git" "command -v curl && command -v wget && command -v git"
+
+# Install GitubCLI
+install_utility "ghcli" "curl -sS https://webi.sh/gh | sh && source ~/.config/envman/PATH.env"
 
 # Install k9s
 install_utility "k9s" "curl -sS https://webi.sh/k9s | sh && source ~/.config/envman/PATH.env"
