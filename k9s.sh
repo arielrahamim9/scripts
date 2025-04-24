@@ -59,7 +59,7 @@ fi
 
 # Install base dependencies
 echo "Installing base dependencies..."
-$INSTALL_CMD curl wget git unzip
+$INSTALL_CMD --skip-broken curl wget git unzip
 
 # Install AWS CLI if not present
 if ! command_exists aws; then
