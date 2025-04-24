@@ -34,8 +34,7 @@ add_to_path() {
 }
 
 # Create a temporary directory for downloads
-TEMP_DIR=$(mktemp -d)
-cd "$TEMP_DIR" || exit 1
+cd /tmp || exit 1
 
 # Detect distribution and set package manager
 if [ -f /etc/os-release ]; then
@@ -59,7 +58,7 @@ fi
 
 # Install base dependencies
 echo "Installing base dependencies..."
-$INSTALL_CMD --skip-broken curl wget git unzip
+$INSTALL_CMD curl wget git unzip
 
 # Install AWS CLI if not present
 if ! command_exists aws; then
@@ -103,48 +102,6 @@ if ! command_exists argocd; then
     log_success "ArgoCD CLI installed"
 fi
 
-# Install DCV Server for Amazon Linux 2
-if [ "$ID" == "amzn" ] && [ "$VERSION_ID" == "2" ]; then
-    echo "Installing Amazon DCV Server..."
-    
-    # Import DCV GPG key
-    sudo rpm --import https://d1uj6qtbmh3dt5.cloudfront.net/NICE-GPG-KEY
-    
-    # Download and extract DCV packages
-    ARCH=$(uname -m)
-    if [ "$ARCH" == "x86_64" ]; then
-        wget https://d1uj6qtbmh3dt5.cloudfront.net/nice-dcv-amzn2-x86_64.tgz
-        tar -xvzf nice-dcv-amzn2-x86_64.tgz
-        cd nice-dcv-*-amzn2-x86_64
-    elif [ "$ARCH" == "aarch64" ]; then
-        wget https://d1uj6qtbmh3dt5.cloudfront.net/nice-dcv-amzn2-aarch64.tgz
-        tar -xvzf nice-dcv-amzn2-aarch64.tgz
-        cd nice-dcv-*-amzn2-aarch64
-    fi
-    
-    # Install DCV packages
-    sudo yum install -y nice-dcv-server-*.rpm
-    sudo yum install -y nice-dcv-web-viewer-*.rpm
-    sudo yum install -y nice-xdcv-*.rpm
-    
-    # Install GPU sharing if x86_64
-    if [ "$ARCH" == "x86_64" ]; then
-        sudo yum install -y nice-dcv-gl-*.rpm
-    fi
-    
-    # Install USB support
-    sudo yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
-    sudo yum install -y dkms
-    sudo dcvusbdriverinstaller
-    
-    # Install audio support
-    sudo yum install -y pulseaudio-utils
-    
-    log_success "DCV Server installation completed"
-fi
-
-sudo systemctl restart dcvserver
-
 # Set up kubectl aliases
 if ! grep -q "alias k=kubectl" ~/.bashrc; then
     echo "Setting up kubectl aliases..."
@@ -168,10 +125,8 @@ fi
 
 # Clean up
 cd "$HOME"
-rm -rf "$TEMP_DIR"
 
 # Reload shell configuration
 exec bash
-
 log_success "Setup completed successfully!"
 echo "All tools have been installed and configured."
