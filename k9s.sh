@@ -50,6 +50,9 @@ install_utility "curl/wget/git" "$INSTALL_CMD curl wget git" "command -v curl &&
 # Install GitubCLI
 install_utility "gh" "curl -sS https://webi.sh/gh | sh && source ~/.config/envman/PATH.env"
 
+# Install kubectl
+install_utility "kubectl" 'curl -LO "https://dl.k8s.io/release/v1.31.0/bin/linux/amd64/kubectl" && sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl && rm kubectl'
+
 # Install k9s
 install_utility "k9s" "curl -sS https://webi.sh/k9s | sh && source ~/.config/envman/PATH.env"
 
