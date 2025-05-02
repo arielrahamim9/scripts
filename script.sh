@@ -38,6 +38,7 @@ add_to_path() {
 
 # Function to install DCV and prerequisites
 dcv() {
+    echo "Debug: DCV value is '$DCV'"
     if [ "$DCV" != "yes" ]; then
         log_warn "DCV installation skipped (set DCV=yes to install)"
         return
@@ -47,12 +48,15 @@ dcv() {
     
     # Create temporary directory for DCV installation
     cd /tmp || exit 1
+    echo "Debug: Current directory is $(pwd)"
 
     # Detect distribution and install accordingly
     if [ -f /etc/os-release ]; then
         . /etc/os-release
+        echo "Debug: Detected OS: $ID $VERSION_ID"
         case $ID in
             ubuntu)
+                echo "Debug: Installing for Ubuntu..."
                 # Install prerequisites
                 sudo apt update
                 sudo apt install -y ubuntu-desktop gdm3
@@ -60,12 +64,14 @@ dcv() {
                 sudo systemctl restart gdm3
 
                 # Import GPG key
+                echo "Debug: Importing GPG key..."
                 wget https://d1uj6qtbmh3dt5.cloudfront.net/NICE-GPG-KEY
                 gpg --import NICE-GPG-KEY
 
                 # Download and install DCV
                 case $VERSION_ID in
                     20.04)
+                        echo "Debug: Installing for Ubuntu 20.04..."
                         wget https://d1uj6qtbmh3dt5.cloudfront.net/nice-dcv-ubuntu2004-x86_64.tgz
                         tar -xvzf nice-dcv-ubuntu2004-x86_64.tgz
                         cd nice-dcv-ubuntu2004-x86_64 || exit 1
@@ -74,6 +80,7 @@ dcv() {
                         sudo apt install ./nice-xdcv_*.deb
                         ;;
                     22.04)
+                        echo "Debug: Installing for Ubuntu 22.04..."
                         wget https://d1uj6qtbmh3dt5.cloudfront.net/nice-dcv-ubuntu2204-x86_64.tgz
                         tar -xvzf nice-dcv-ubuntu2204-x86_64.tgz
                         cd nice-dcv-ubuntu2204-x86_64 || exit 1
@@ -88,6 +95,7 @@ dcv() {
                 esac
                 ;;
             amzn)
+                echo "Debug: Installing for Amazon Linux..."
                 if [ "$VERSION_ID" = "2023" ]; then
                     # Amazon Linux 2023 prerequisites
                     sudo dnf groupinstall -y 'Desktop'
@@ -252,3 +260,4 @@ cd "$HOME"
 exec bash
 log_success "Setup completed successfully!"
 echo "All tools have been installed and configured."
+
