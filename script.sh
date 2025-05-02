@@ -4,10 +4,21 @@ set -e
 # To run this script directly from GitHub raw:
 # curl -sSL https://raw.githubusercontent.com/arielrahamim9/scripts/refs/heads/main/script.sh | bash
 #
-# DCV=yes curl -sSL https://raw.githubusercontent.com/arielrahamim9/scripts/refs/heads/main/script.sh | bash
+# Command to assume role and set AWS Credentials
+# eval $(aws sts assume-role --role-arn "arn:aws:iam::337450623971:role/PlatformAdmin" \
+#   --role-session-name "test" \
+#   --output text \
+#   --query 'Credentials.[join(`=`, [`AWS_ACCESS_KEY_ID`, AccessKeyId]), join(`=`, [`AWS_SECRET_ACCESS_KEY`, SecretAccessKey]), join(`=`, [`AWS_SESSION_TOKEN`, SessionToken])]' | \
+#   sed 's/^/export /')
+#
+# kubectl context configuration
+# aws eks update-kubeconfig --name "$CLUSTER_NAME" --region "$REGION"
+
+
+
 
 # Configuration
-CLUSTER_NAME="hyperspace-simulation-dev"
+CLUSTER_NAME="hyperspace-tfc-simulation"
 REGION="eu-west-2"
 DCV=${DCV:-"no"}  # Default to no, can be overridden with DCV=yes
 
@@ -36,11 +47,8 @@ add_to_path() {
     fi
 }
 
-echo "Debug: DCV value is '$DCV'"
-
 # Function to install DCV and prerequisites
 dcv() {
-    echo "Debug: DCV value is '$DCV'"
     if [ "$DCV" != "yes" ]; then
         log_warn "DCV installation skipped (set DCV=yes to install)"
         return
@@ -50,15 +58,12 @@ dcv() {
     
     # Create temporary directory for DCV installation
     cd /tmp || exit 1
-    echo "Debug: Current directory is $(pwd)"
 
     # Detect distribution and install accordingly
     if [ -f /etc/os-release ]; then
         . /etc/os-release
-        echo "Debug: Detected OS: $ID $VERSION_ID"
         case $ID in
             ubuntu)
-                echo "Debug: Installing for Ubuntu..."
                 # Install prerequisites
                 sudo apt update
                 sudo apt install -y ubuntu-desktop gdm3
@@ -66,14 +71,12 @@ dcv() {
                 sudo systemctl restart gdm3
 
                 # Import GPG key
-                echo "Debug: Importing GPG key..."
                 wget https://d1uj6qtbmh3dt5.cloudfront.net/NICE-GPG-KEY
                 gpg --import NICE-GPG-KEY
 
                 # Download and install DCV
                 case $VERSION_ID in
                     20.04)
-                        echo "Debug: Installing for Ubuntu 20.04..."
                         wget https://d1uj6qtbmh3dt5.cloudfront.net/nice-dcv-ubuntu2004-x86_64.tgz
                         tar -xvzf nice-dcv-ubuntu2004-x86_64.tgz
                         cd nice-dcv-ubuntu2004-x86_64 || exit 1
@@ -82,7 +85,6 @@ dcv() {
                         sudo apt install ./nice-xdcv_*.deb
                         ;;
                     22.04)
-                        echo "Debug: Installing for Ubuntu 22.04..."
                         wget https://d1uj6qtbmh3dt5.cloudfront.net/nice-dcv-ubuntu2204-x86_64.tgz
                         tar -xvzf nice-dcv-ubuntu2204-x86_64.tgz
                         cd nice-dcv-ubuntu2204-x86_64 || exit 1
@@ -97,7 +99,6 @@ dcv() {
                 esac
                 ;;
             amzn)
-                echo "Debug: Installing for Amazon Linux..."
                 if [ "$VERSION_ID" = "2023" ]; then
                     # Amazon Linux 2023 prerequisites
                     sudo dnf groupinstall -y 'Desktop'
@@ -187,7 +188,7 @@ fi
 
 # Install base dependencies
 echo "Installing base dependencies..."
-$INSTALL_CMD curl wget git unzip
+$INSTALL_CMD curl wget git unzip jq
 
 # Install AWS CLI if not present
 if ! command_exists aws; then
@@ -246,20 +247,38 @@ fi
 # Configure kubectl context
 echo "Configuring kubectl context..."
 if command_exists aws; then
-    aws eks update-kubeconfig --name "$CLUSTER_NAME" --region "$REGION"
-    log_success "kubectl context configured"
+    success=0
+    for attempt in {1..3}; do
+        if aws eks update-kubeconfig --name "$CLUSTER_NAME" --region "$REGION"; then
+            log_success "kubectl context configured"
+            success=1
+            break
+        else
+            log_warn "Attempt $attempt to configure kubectl context failed."
+        fi
+    done
+    if [ $success -eq 0 ]; then
+        log_warn "Trying to assume role and update kubeconfig..."
+        eval "$(aws sts assume-role --role-arn "arn:aws:iam::337450623971:role/PlatformAdmin" --role-session-name "test" --output text --query "Credentials.[join('=', ['AWS_ACCESS_KEY_ID', AccessKeyId]), join('=', ['AWS_SECRET_ACCESS_KEY', SecretAccessKey]), join('=', ['AWS_SESSION_TOKEN', SessionToken])]" | sed 's/^/export /')"
+        log_success "kubectl context configured after assuming role"
+    else
+        log_error "Failed to configure kubectl context even after assuming role."
+    fi
 else
     log_error "AWS CLI not found. Please install it to configure kubectl context."
 fi
 
-# Install DCV if requested
-dcv
+# Install DCV
+if ! command_exists dcv; then
+    dcv
+else
+    log_success "DCV is already installed. Skipping installation."
+fi
 
 # Clean up
 cd "$HOME"
 
 # Reload shell configuration
-exec bash
+bash
 log_success "Setup completed successfully!"
 echo "All tools have been installed and configured."
-
