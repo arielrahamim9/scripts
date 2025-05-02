@@ -7,7 +7,7 @@ set -e
 # DCV=yes curl -sSL https://raw.githubusercontent.com/arielrahamim9/scripts/refs/heads/main/script.sh | bash
 
 # Configuration
-CLUSTER_NAME="hyperspace-tfc-simulation"
+CLUSTER_NAME="hyperspace-simulation-dev"
 REGION="eu-west-2"
 DCV=${DCV:-"no"}  # Default to no, can be overridden with DCV=yes
 
@@ -35,6 +35,8 @@ add_to_path() {
         echo "export PATH=\"$dir:\$PATH\"" >> ~/.bashrc
     fi
 }
+
+echo "Debug: DCV value is '$DCV'"
 
 # Function to install DCV and prerequisites
 dcv() {
