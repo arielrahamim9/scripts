@@ -176,9 +176,16 @@ if [ -f /etc/os-release ]; then
             INSTALL_CMD="sudo $PKG_MANAGER install -y"
             ;;
         rhel|centos|rocky|almalinux|amzn)
-            PKG_MANAGER="yum"
-            sudo $PKG_MANAGER update -y
-            INSTALL_CMD="sudo $PKG_MANAGER install -y"
+            PKG_MANAGER="dnf"
+            # For CentOS Stream, we need to handle package conflicts
+            if [ "$ID" = "centos" ] && [ "$VERSION_ID" = "9" ]; then
+                sudo $PKG_MANAGER clean all
+                sudo $PKG_MANAGER makecache
+                INSTALL_CMD="sudo $PKG_MANAGER install -y --allowerasing"
+            else
+                sudo $PKG_MANAGER update -y
+                INSTALL_CMD="sudo $PKG_MANAGER install -y"
+            fi
             ;;
         *) log_error "Unsupported distribution: $ID"; exit 1 ;;
     esac
